@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Quiz App</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #3730a3;
+            --bg-light: #f3f4f6;
+            --text-dark: #1f2937;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 2rem;
+        }
+
+        .quiz-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 4px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary);
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .options {
+            display: grid;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .option {
+            padding: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option:hover {
+            background-color: var(--bg-light);
+            border-color: var(--primary);
+        }
+
+        .selected {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .correct {
+            background-color: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .incorrect {
+            background-color: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+
+        #result {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 4px;
+            background-color: var(--bg-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JavaScript Quiz App</h1>
+        
+        <div id="start-screen">
+            <button class="btn" id="start-btn">Start Quiz</button>
+            <div>Highest Score: <span id="highest-score">0</span></div>
+        </div>
+
+        <div id="quiz-screen" style="display: none;">
+            <div class="quiz-info">
+                <div>Question: <span id="question-number">1</span>/<span id="total-questions">10</span></div>
+                <div>Time: <span id="timer">60</span>s</div>
+                <div>Score: <span id="score">0</span></div>
+            </div>
+
+            <div id="question-text"></div>
+            <div id="options" class="options"></div>
+            <button class="btn" id="next-btn" disabled>Next Question</button>
+        </div>
+
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What keyword is used to declare a variable in JavaScript?",
+                options: ["var", "let", "const", "variable"],
+                correct: 0,
+               //
+            },
+            {
+                question: "What is the result of '2' + 2 in JavaScript?",
+                options: ["4", "22", "Error", "Undefined"],
+                correct: 1,
+               // 
+            },
+            {
+                question: "Which method adds an element to the end of an array?",
+                options: ["push()", "add()", "append()", "insert()"],
+                correct: 0,
+               // explanation: "push() adds one or more elements to the end of an array and returns the new length of the array."
+            },
+            {
+                question: "What does the === operator do?",
+                options: ["Assigns a value", "Checks value", "Checks value and type", "Compares loosely"],
+                correct: 2,
+                
+            },
+            {
+                question: "What is a closure in JavaScript?",
+                options: ["A function with no arguments", "A function that returns another function", "A way to block code execution", "A type of array"],
+                correct: 1,
+               
+            },
+            {
+                question: "What is the purpose of 'this' keyword?",
+                options: ["To create a new variable", "To refer to the current function", "To refer to the current object", "To stop execution"],
+                correct: 2,
+                
+            },
+            {
+                question: "What is the event loop in JavaScript?",
+                options: ["A loop that runs events", "A mechanism for handling async operations", "A way to create timers", "A method to stop events"],
+                correct: 1,
+               
+            },
+            {
+                question: "What does the spread operator (...) do?",
+                options: ["Multiply numbers", "Spread elements of an array", "Create a new array", "Stop execution"],
+                correct: 1,
+               
+            },
+            {
+                question: "What is prototypal inheritance?",
+                options: ["A way to create classes", "JavaScript's object inheritance mechanism", "A method to copy objects", "A type of function"],
+                correct: 1,
+               
+            },
+            {
+                question: "Which of these is NOT a falsy value in JavaScript?",
+                options: ["0", "null", "undefined", "[]"],
+                correct: 3,
+                
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let timer;
+        let timeLeft;
+        let questions;
+
+        // DOM elements
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultDiv = document.getElementById('result');
+        const questionText = document.getElementById('question-text');
+        const optionsDiv = document.getElementById('options');
+        const nextButton = document.getElementById('next-btn');
+        const timerDisplay = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score');
+        const startButton = document.getElementById('start-btn');
+        const highestScoreDisplay = document.getElementById('highest-score');
+
+        // Load highest score from local storage
+        const highestScore = localStorage.getItem('highestScore') || 0;
+        highestScoreDisplay.textContent = highestScore;
+
+        startButton.addEventListener('click', startQuiz);
+        nextButton.addEventListener('click', nextQuestion);
+
+        function startQuiz() {
+            questions = quizData;
+            currentQuestion = 0;
+            score = 0;
+            timeLeft = 60;
+            
+            startScreen.style.display = 'none';
+            quizScreen.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            document.getElementById('total-questions').textContent = questions.length;
+            updateQuestion();
+            startTimer();
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    endQuiz();
+                }
+            }, 1000);
+        }
+
+        function updateQuestion() {
+            const question = questions[currentQuestion];
+            document.getElementById('question-number').textContent = currentQuestion + 1;
+            questionText.textContent = question.question;
+            optionsDiv.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const button = document.createElement('div');
+                button.className = 'option';
+                button.textContent = option;
+                button.addEventListener('click', () => selectOption(index));
+                optionsDiv.appendChild(button);
+            });
+            
+            nextButton.disabled = true;
+        }
+
+        function selectOption(index) {
+            const options = document.querySelectorAll('.option');
+            const question = questions[currentQuestion];
+            
+            options.forEach(option => option.classList.remove('selected'));
+            options[index].classList.add('selected');
+            
+            options.forEach(option => option.classList.remove('correct', 'incorrect'));
+            
+            if (index === question.correct) {
+                options[index].classList.add('correct');
+                score++;
+                scoreDisplay.textContent = score;
+            } else {
+                options[index].classList.add('incorrect');
+                options[question.correct].classList.add('correct');
+            }
+            
+            nextButton.disabled = false;
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            
+            if (currentQuestion < questions.length) {
+                updateQuestion();
+            } else {
+                endQuiz();
+            }
+        }
+
+        function endQuiz() {
+            clearInterval(timer);
+            quizScreen.style.display = 'none';
+            resultDiv.style.display = 'block';
+            
+            const percentage = (score / questions.length) * 100;
+            
+            if (score > highestScore) {
+                localStorage.setItem('highestScore', score);
+                resultDiv.innerHTML = `
+                    <h2>Quiz Complete!</h2>
+                    <p>Your Score: ${score} out of ${questions.length} (${percentage.toFixed(1)}%)</p>
+                    <p>New High Score! 🎉</p>
+                    <button class="btn" onclick="location.reload()">Try Again</button>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <h2>Quiz Complete!</h2>
+                    <p>Your Score: ${score} out of ${questions.length} (${percentage.toFixed(1)}%)</p>
+                    <button class="btn" onclick="location.reload()">Try Again</button>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
